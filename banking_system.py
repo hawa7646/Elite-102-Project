@@ -1,10 +1,12 @@
-# Banking System
-import sqlite3  # This connects me to a small local database
+# Banking System 
 
+import sqlite3
+
+# Connect to database (creates file if not there)
 conn = sqlite3.connect('bank.db')
 cursor = conn.cursor()
 
-# Create a table called 'accounts' to store  users
+# Create accounts table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS accounts (
     account_number INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,120 +15,103 @@ CREATE TABLE IF NOT EXISTS accounts (
     balance REAL DEFAULT 0.0
 )
 ''')
-conn.commit()  # Save changes
+conn.commit()
 
-# Step 1: Create an account
+# Create new account
 def create_account():
-    print("=== Create a New Account ===")
-    name = input("Enter your full name: ")
-    pin = input("Choose a 4-digit PIN: ")
-
-    # Add new user to the database
+    print("=== Create Account ===")
+    name = input("Enter full name: ")
+    pin = input("Choose 4-digit PIN: ")
     cursor.execute("INSERT INTO accounts (name, pin) VALUES (?, ?)", (name, pin))
     conn.commit()
+    print("Account created. Your account number is:", cursor.lastrowid)
 
-    # Get the new account number
-    account_number = cursor.lastrowid
-    print("Account created successfully!")
-    print("Your account number is:", account_number)
-    print("Please remember your account number and PIN for future logins.")
-    print("You can now log in to your account.")
-# Step 2: Log into account
+# Login
 def login():
     print("=== Login ===")
-    acc_num = input("Enter your account number: ")
-    pin = input("Enter your PIN: ")
-
+    acc_num = input("Enter account number: ")
+    pin = input("Enter PIN: ")
     cursor.execute("SELECT * FROM accounts WHERE account_number = ? AND pin = ?", (acc_num, pin))
-    user = cursor.fetchone()  # Get result
-
+    user = cursor.fetchone()
     if user:
-        print("Login successful! Welcome", user[1])
+        print("Welcome,", user[1])
         return user
     else:
-        print("Incorrect account number or PIN.")
+        print("Login failed.")
         return None
 
-# Step 3: Check balance
+# Check balance
 def check_balance(user):
-    print("Your current balance is: $", user[3])
-# Step 4: Deposit money
+    print("Your balance is $", user[3])
+
+# Deposit
 def deposit(user):
-    print("=== Deposit ===")
     amount = float(input("Enter amount to deposit: "))
     new_balance = user[3] + amount
-
     cursor.execute("UPDATE accounts SET balance = ? WHERE account_number = ?", (new_balance, user[0]))
     conn.commit()
-    print("Deposit successful. New balance: $", new_balance)
-# Step 5: Withdraw money
-def withdraw(user):
-    print("=== Withdraw ===")
-    amount = float(input("Enter amount to withdraw: "))
+    print("Deposited. New balance: $", new_balance)
 
+# Withdraw
+def withdraw(user):
+    amount = float(input("Enter amount to withdraw: "))
     if amount > user[3]:
-        print("You don't have enough money.")
+        print("Not enough funds.")
     else:
         new_balance = user[3] - amount
         cursor.execute("UPDATE accounts SET balance = ? WHERE account_number = ?", (new_balance, user[0]))
         conn.commit()
-        print("Withdrawal successful. New balance: $", new_balance)
-# Step 6: Modify account (Admin)
-def modify_account():
-    print("=== Modify Account ===")
-    acc_num = input("Enter account number to update: ")
-    new_name = input("Enter new name: ")
-    new_pin = input("Enter new PIN: ")
+        print("Withdrawn. New balance: $", new_balance)
 
+# Modify account
+def modify_account():
+    acc_num = input("Account number to update: ")
+    new_name = input("New name: ")
+    new_pin = input("New PIN: ")
     cursor.execute("UPDATE accounts SET name = ?, pin = ? WHERE account_number = ?", (new_name, new_pin, acc_num))
     conn.commit()
-    print("Account updated!")
-# Step 7: Delete account (Admin)
+    print("Account updated.")
+
+# Delete account
 def delete_account():
-    print("=== Delete Account ===")
     acc_num = input("Enter account number to delete: ")
     cursor.execute("DELETE FROM accounts WHERE account_number = ?", (acc_num,))
     conn.commit()
     print("Account deleted.")
-# Menu after logging in
+
+# User menu (after login)
 def user_menu(user):
     while True:
-        print("\n1. Check Balance")
-        print("2. Deposit")
-        print("3. Withdraw")
-        print("4. Logout")
-
-        choice = input("Choose an option: ")
-
+        print("\n1. Check Balance\n2. Deposit\n3. Withdraw\n4. Logout")
+        choice = input("Choose: ")
         if choice == '1':
             check_balance(user)
         elif choice == '2':
             deposit(user)
-            user = get_user(user[0])  # Refresh user data
+            user = get_user(user[0])  # Refresh data after deposit
         elif choice == '3':
             withdraw(user)
-            user = get_user(user[0])  # Refresh user data
         elif choice == '4':
-            print("Goodbye!")
             break
         else:
-            print("Not a valid choice.")
+            print("Invalid option")
 
-# Refresh the user's data (to get new balance after deposit/withdraw)
-def get_user(account_number):
-    cursor.execute("SELECT * FROM accounts WHERE account_number = ?", (account_number,))
+# Get user again (used after deposit)
+def get_user(acc_num):
+    cursor.execute("SELECT * FROM accounts WHERE account_number = ?", (acc_num,))
     return cursor.fetchone()
-# Main menu
+
+# Main menu function
 def main_menu():
     while True:
-        print("\n=== Welcome to the Beginner Bank ===")
+        print("\n=== Beginner Bank ===")
         print("1. Create Account")
         print("2. Login")
-        print("3. Admin: Modify Account")
-        print("4. Admin: Delete Account")
+        print("3. Modify Account (Admin)")
+        print("4. Delete Account (Admin)")
         print("5. Exit")
 
-        choice = input("Choose an option: ")
+        choice = input("Select an option: ")
 
         if choice == '1':
             create_account()
@@ -139,10 +124,11 @@ def main_menu():
         elif choice == '4':
             delete_account()
         elif choice == '5':
-            print("Exiting. Thanks for using Beginner Bank.")
+            print("Thanks for using the app.")
             break
         else:
-            print("That is not a valid option. Please try again.")
+            print("Invalid input.")
 
-# Run the main menu
+# Run
 main_menu()
+
